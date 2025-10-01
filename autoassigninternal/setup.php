@@ -5,10 +5,12 @@ if (!defined('GLPI_ROOT')) {
 }
 
 require_once __DIR__ . '/inc/config.class.php';
+require_once __DIR__ . '/inc/logging.php';
 
 function plugin_init_autoassigninternal() {
     global $PLUGIN_HOOKS;
 
+    $PLUGIN_HOOKS['post_item_add']['autoassigninternal'] = 'plugin_autoassigninternal_post_item_add';
     $PLUGIN_HOOKS['post_item_update']['autoassigninternal'] = 'plugin_autoassigninternal_post_item_update';
     $PLUGIN_HOOKS['config_page']['autoassigninternal'] = 'front/config.form.php';
     $PLUGIN_HOOKS['csrf_compliant']['autoassigninternal'] = true;
@@ -16,6 +18,8 @@ function plugin_init_autoassigninternal() {
     if (class_exists('Plugin')) {
         Plugin::registerClass('PluginAutoassigninternalConfig');
     }
+
+    plugin_autoassigninternal_log('Plugin AutoAssignInternal inicializado.');
 }
 
 function plugin_version_autoassigninternal() {
