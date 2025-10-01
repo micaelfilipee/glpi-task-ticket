@@ -5,12 +5,7 @@ if (!defined('GLPI_ROOT')) {
 }
 
 require_once __DIR__ . '/inc/config.class.php';
-
-if (!function_exists('plugin_autoassigninternal_log')) {
-    function plugin_autoassigninternal_log($message) {
-        Toolbox::logInFile('autoassigninternal', '[AutoAssignInternal] ' . $message);
-    }
-}
+require_once __DIR__ . '/inc/logging.php';
 
 function plugin_autoassigninternal_post_item_update(CommonDBTM $item) {
     if (!($item instanceof TicketTask)) {
@@ -72,27 +67,49 @@ function plugin_autoassigninternal_post_item_update(CommonDBTM $item) {
         return;
     }
 
-    $assignmentField = 'users_id';
-    if (!isset($ticket->fields[$assignmentField]) && isset($ticket->fields['users_id_assign'])) {
-        $assignmentField = 'users_id_assign';
+    $ticketUser = new Ticket_User();
+    $assignType = CommonITILActor::ASSIGN;
+
+    $existingAssignments = [];
+    if (isset($ticket->fields['id'])) {
+        $iterator = $ticketUser->find([
+            'tickets_id' => $ticketId,
+            'type'       => $assignType
+        ]);
+
+        if (is_array($iterator)) {
+            $existingAssignments = $iterator;
+        }
     }
 
-    $currentTicketUserId = 0;
-    if (isset($ticket->fields[$assignmentField])) {
-        $currentTicketUserId = (int)$ticket->fields[$assignmentField];
+    foreach ($existingAssignments as $assignment) {
+        if ((int)$assignment['users_id'] === $taskUserId) {
+            plugin_autoassigninternal_log(sprintf('Chamado %d já está atribuído ao usuário %d.', $ticketId, $taskUserId));
+            return;
+        }
     }
 
-    if ($currentTicketUserId === $taskUserId) {
-        plugin_autoassigninternal_log(sprintf('Chamado %d já está atribuído ao usuário %d.', $ticketId, $taskUserId));
-        return;
+    $result = false;
+
+    if (!empty($existingAssignments)) {
+        $assignment = reset($existingAssignments);
+        $assignmentId = isset($assignment['id']) ? (int)$assignment['id'] : (int)key($existingAssignments);
+
+        $result = $ticketUser->update([
+            'id'               => $assignmentId,
+            'users_id'         => $taskUserId,
+            'use_notification' => isset($assignment['use_notification']) ? $assignment['use_notification'] : 1
+        ]);
+    } else {
+        $result = (bool)$ticketUser->add([
+            'tickets_id'      => $ticketId,
+            'users_id'        => $taskUserId,
+            'type'            => $assignType,
+            'use_notification'=> 1
+        ]);
     }
 
-    $updateInput = [
-        'id'             => $ticketId,
-        $assignmentField => $taskUserId
-    ];
-
-    if ($ticket->update($updateInput)) {
+    if ($result) {
         plugin_autoassigninternal_log(sprintf('Chamado %d atribuído automaticamente ao usuário %d.', $ticketId, $taskUserId));
     } else {
         plugin_autoassigninternal_log(sprintf('Falha ao atribuir automaticamente o chamado %d ao usuário %d.', $ticketId, $taskUserId));
