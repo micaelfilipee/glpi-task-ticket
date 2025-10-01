@@ -5,6 +5,7 @@ if (!defined('GLPI_ROOT')) {
 }
 
 require_once __DIR__ . '/inc/config.class.php';
+require_once __DIR__ . '/inc/logging.php';
 
 function plugin_init_autoassigninternal() {
     global $PLUGIN_HOOKS;
@@ -16,6 +17,8 @@ function plugin_init_autoassigninternal() {
     if (class_exists('Plugin')) {
         Plugin::registerClass('PluginAutoassigninternalConfig');
     }
+
+    plugin_autoassigninternal_log('Plugin AutoAssignInternal inicializado.');
 }
 
 function plugin_version_autoassigninternal() {
