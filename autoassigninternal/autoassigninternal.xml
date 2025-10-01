@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+   <name>Auto Assign Internal</name>
+   <key>autoassigninternal</key>
+   <state>stable</state>
+   <logo></logo>
+   <description>
+      <short>
+         <en>Automatically assigns ticket users based on task assignments for internal request types</en>
+         <pt_BR>Atribui automaticamente usuários a tickets com base em atribuições de tarefas para tipos de solicitação interna</pt_BR>
+      </short>
+      <long>
+         <en>This plugin intercepts TicketTask updates and automatically assigns the task's user to the ticket when the ticket's RequestType matches a configured internal type. Useful for ensuring proper ticket assignment for internal requests.</en>
+         <pt_BR>Este plugin intercepta atualizações de TicketTask e atribui automaticamente o usuário da tarefa ao ticket quando o RequestType do ticket corresponde a um tipo interno configurado. Útil para garantir a atribuição adequada de tickets para solicitações internas.</pt_BR>
+      </long>
+   </description>
+   <homepage>https://github.com/micaelfilipee/glpi-task-ticket</homepage>
+   <download>https://github.com/micaelfilipee/glpi-task-ticket/releases</download>
+   <issues>https://github.com/micaelfilipee/glpi-task-ticket/issues</issues>
+   <readme>https://github.com/micaelfilipee/glpi-task-ticket/blob/main/README.md</readme>
+   <authors>
+      <author>AutoAssignInternal Team</author>
+   </authors>
+   <versions>
+      <version>
+         <num>1.0.0</num>
+         <compatibility>
+            <min>9.5.0</min>
+            <max>9.5.99</max>
+         </compatibility>
+      </version>
+   </versions>
+   <langs>
+      <lang>en_GB</lang>
+      <lang>pt_BR</lang>
+   </langs>
+   <license>MIT</license>
+   <tags>
+      <en>
+         <tag>ticket</tag>
+         <tag>task</tag>
+         <tag>assignment</tag>
+         <tag>automation</tag>
+      </en>
+      <pt_BR>
+         <tag>ticket</tag>
+         <tag>tarefa</tag>
+         <tag>atribuição</tag>
+         <tag>automação</tag>
+      </pt_BR>
+   </tags>
+</root>
