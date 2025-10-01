@@ -84,17 +84,40 @@ function plugin_autoassigninternal_post_item_update(CommonDBTM $item) {
 
     if ($currentTicketUserId === $taskUserId) {
         plugin_autoassigninternal_log(sprintf('Chamado %d já está atribuído ao usuário %d.', $ticketId, $taskUserId));
+    } else {
+        $updateInput = [
+            'id'             => $ticketId,
+            $assignmentField => $taskUserId
+        ];
+
+        if ($ticket->update($updateInput)) {
+            plugin_autoassigninternal_log(sprintf('Chamado %d atribuído automaticamente ao usuário %d.', $ticketId, $taskUserId));
+        } else {
+            plugin_autoassigninternal_log(sprintf('Falha ao atribuir automaticamente o chamado %d ao usuário %d.', $ticketId, $taskUserId));
+        }
+    }
+
+    plugin_autoassigninternal_ensure_ticket_assigned_actor($ticketId, $taskUserId);
+}
+
+function plugin_autoassigninternal_ensure_ticket_assigned_actor($ticketId, $userId) {
+    $ticketUser = new Ticket_User();
+    $criteria   = [
+        'tickets_id' => $ticketId,
+        'users_id'   => $userId,
+        'type'       => CommonITILActor::ASSIGN
+    ];
+
+    if (!empty($ticketUser->find($criteria))) {
+        plugin_autoassigninternal_log(sprintf('Chamado %d já possui o usuário %d como ator atribuído.', $ticketId, $userId));
         return;
     }
 
-    $updateInput = [
-        'id'             => $ticketId,
-        $assignmentField => $taskUserId
-    ];
+    $addInput = $criteria + ['use_notification' => 1];
 
-    if ($ticket->update($updateInput)) {
-        plugin_autoassigninternal_log(sprintf('Chamado %d atribuído automaticamente ao usuário %d.', $ticketId, $taskUserId));
+    if ($ticketUser->add($addInput)) {
+        plugin_autoassigninternal_log(sprintf('Usuário %d adicionado como ator atribuído ao chamado %d.', $userId, $ticketId));
     } else {
-        plugin_autoassigninternal_log(sprintf('Falha ao atribuir automaticamente o chamado %d ao usuário %d.', $ticketId, $taskUserId));
+        plugin_autoassigninternal_log(sprintf('Falha ao adicionar o usuário %d como ator atribuído ao chamado %d.', $userId, $ticketId));
     }
 }
