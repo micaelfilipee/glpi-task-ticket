@@ -1,0 +1,12 @@
+<?php
+if (!defined('PLUGIN_AUTOASSIGNINTERNAL_VERSION')) {
+    define('PLUGIN_AUTOASSIGNINTERNAL_VERSION', '1.0.0');
+}
+
+if (!defined('PLUGIN_AUTOASSIGNINTERNAL_TABLE_REQUESTTYPE_CONFIGS')) {
+    define('PLUGIN_AUTOASSIGNINTERNAL_TABLE_REQUESTTYPE_CONFIGS', 'glpi_plugin_AutoAssignInternal_requesttype_configs');
+}
+
+if (!defined('PLUGIN_AUTOASSIGNINTERNAL_TABLE_SETTINGS')) {
+    define('PLUGIN_AUTOASSIGNINTERNAL_TABLE_SETTINGS', 'glpi_plugin_AutoAssignInternal_settings');
+}
