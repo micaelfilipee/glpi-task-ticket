@@ -20,8 +20,8 @@ function plugin_init_autoassigninternal() {
 
 function plugin_version_autoassigninternal() {
     return [
-        'name'           => __('Auto Assign Internal', 'autoassigninternal'),
-        'version'        => '1.0.0',
+        'name'           => __('Atribuição Interna Automática', 'autoassigninternal'),
+        'version'        => '1.1.0',
         'author'         => 'OpenAI ChatGPT',
         'license'        => 'GPLv2+',
         'homepage'       => '',
@@ -50,17 +50,42 @@ function plugin_autoassigninternal_install() {
     if (!$DB->tableExists($table)) {
         $query = "CREATE TABLE `$table` (
             `id` int(11) NOT NULL AUTO_INCREMENT,
-            `requesttypes_id` int(11) NOT NULL DEFAULT '0',
+            `requesttypes` text NOT NULL,
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         $DB->queryOrDie($query, 'Failed to create plugin_autoassigninternal configuration table');
     }
 
+    if ($DB->tableExists($table) && !$DB->fieldExists($table, 'requesttypes')) {
+        $DB->queryOrDie("ALTER TABLE `$table` ADD `requesttypes` TEXT NOT NULL", 'Failed to add requesttypes column');
+
+        if ($DB->fieldExists($table, 'requesttypes_id')) {
+            $configData = $DB->request([
+                'SELECT' => ['id', 'requesttypes_id'],
+                'FROM'   => $table
+            ]);
+
+            foreach ($configData as $row) {
+                $ids = [];
+                if (isset($row['requesttypes_id']) && (int)$row['requesttypes_id'] > 0) {
+                    $ids[] = (int)$row['requesttypes_id'];
+                }
+                $DB->update($table, [
+                    'requesttypes' => json_encode($ids)
+                ], [
+                    'id' => $row['id']
+                ]);
+            }
+
+            $DB->query("ALTER TABLE `$table` DROP COLUMN `requesttypes_id`");
+        }
+    }
+
     $config = new PluginAutoassigninternalConfig();
     if (!$config->getFromDB(1)) {
         $config->add([
-            'id'              => 1,
-            'requesttypes_id' => 0
+            'id'           => 1,
+            'requesttypes' => json_encode([])
         ]);
     }
 

@@ -7,8 +7,8 @@ Session::checkRight('config', UPDATE);
 $config = new PluginAutoassigninternalConfig();
 if (!$config->getFromDB(PluginAutoassigninternalConfig::CONFIG_ID)) {
     $config->add([
-        'id'              => PluginAutoassigninternalConfig::CONFIG_ID,
-        'requesttypes_id' => 0
+        'id'           => PluginAutoassigninternalConfig::CONFIG_ID,
+        'requesttypes' => json_encode([])
     ]);
     $config->getFromDB(PluginAutoassigninternalConfig::CONFIG_ID);
 }
@@ -18,19 +18,19 @@ if (isset($_POST['update'])) {
         'id' => PluginAutoassigninternalConfig::CONFIG_ID
     ];
 
-    if (isset($_POST['requesttypes_id']) && $_POST['requesttypes_id'] !== '') {
-        $input['requesttypes_id'] = (int)$_POST['requesttypes_id'];
+    if (isset($_POST['requesttypes_ids']) && is_array($_POST['requesttypes_ids'])) {
+        $input['requesttypes'] = $_POST['requesttypes_ids'];
     } else {
-        $input['requesttypes_id'] = 0;
+        $input['requesttypes'] = [];
     }
 
     $config->update($input);
-    Session::addMessageAfterRedirect(__('Configuration updated', 'autoassigninternal'), true, INFO, true);
+    Session::addMessageAfterRedirect(__('Configuração atualizada com sucesso.', 'autoassigninternal'), true, INFO, true);
     Html::back();
     exit;
 }
 
-Html::header(__('Auto Assign Internal', 'autoassigninternal'), '', 'plugins', 'autoassigninternal');
+Html::header(__('Atribuição Interna Automática', 'autoassigninternal'), '', 'plugins', 'autoassigninternal');
 
 $config->showConfigForm();
 

@@ -12,26 +12,37 @@ class PluginAutoassigninternalConfig extends CommonDBTM {
     public $dohistory = true;
 
     public static function getTypeName($nb = 0) {
-        return _n('Auto Assign Internal', 'Auto Assign Internal', $nb, 'autoassigninternal');
+        return _n('Atribuição Interna Automática', 'Atribuição Interna Automática', $nb, 'autoassigninternal');
     }
 
     public static function getInstance() {
         $instance = new self();
         if (!$instance->getFromDB(self::CONFIG_ID)) {
             $instance->fields = [
-                'id'              => self::CONFIG_ID,
-                'requesttypes_id' => 0
+                'id'           => self::CONFIG_ID,
+                'requesttypes' => json_encode([])
             ];
         }
 
         return $instance;
     }
 
-    public function getInternalRequestTypeId() {
-        if (isset($this->fields['requesttypes_id'])) {
-            return (int)$this->fields['requesttypes_id'];
+    public function getInternalRequestTypeIds() {
+        if (isset($this->fields['requesttypes'])) {
+            $decoded = json_decode($this->fields['requesttypes'], true);
+            if (is_array($decoded)) {
+                return array_values(array_unique(array_map('intval', $decoded)));
+            }
         }
-        return 0;
+
+        if (isset($this->fields['requesttypes_id'])) {
+            $singleId = (int)$this->fields['requesttypes_id'];
+            if ($singleId > 0) {
+                return [$singleId];
+            }
+        }
+
+        return [];
     }
 
     public function showConfigForm() {
@@ -39,18 +50,17 @@ class PluginAutoassigninternalConfig extends CommonDBTM {
         $this->showFormHeader(['formtitle' => self::getTypeName(1)]);
 
         echo "<tr class='tab_bg_1'>";
-        echo '<td>' . __('Internal request type', 'autoassigninternal') . '</td>';
+        echo '<td>' . __('Tipos de origem internos', 'autoassigninternal') . '</td>';
         echo '<td>';
 
-        $value = 0;
-        if (isset($this->fields['requesttypes_id'])) {
-            $value = (int)$this->fields['requesttypes_id'];
-        }
+        $value = $this->getInternalRequestTypeIds();
 
         RequestType::dropdown([
-            'name'                 => 'requesttypes_id',
-            'value'                => $value,
-            'display_emptychoice'  => true
+            'name'                => 'requesttypes_ids[]',
+            'value'               => $value,
+            'values'              => $value,
+            'multiple'            => true,
+            'display_emptychoice' => true
         ]);
 
         echo '</td>';
@@ -61,21 +71,33 @@ class PluginAutoassigninternalConfig extends CommonDBTM {
         return true;
     }
 
-    public function prepareInputForAdd($input) {
-        if (!isset($input['requesttypes_id'])) {
-            $input['requesttypes_id'] = 0;
+    private function normalizeRequestTypesInput(array $input) {
+        if (!isset($input['requesttypes'])) {
+            $input['requesttypes'] = [];
         }
-        $input['requesttypes_id'] = (int)$input['requesttypes_id'];
 
-        return parent::prepareInputForAdd($input);
+        if (!is_array($input['requesttypes'])) {
+            $input['requesttypes'] = [$input['requesttypes']];
+        }
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $input['requesttypes']), function ($value) {
+            return $value > 0;
+        })));
+
+        $input['requesttypes'] = json_encode($ids);
+
+        return $input;
     }
 
     public function prepareInputForUpdate($input) {
-        if (!isset($input['requesttypes_id'])) {
-            $input['requesttypes_id'] = 0;
-        }
-        $input['requesttypes_id'] = (int)$input['requesttypes_id'];
+        $input = $this->normalizeRequestTypesInput($input);
 
         return parent::prepareInputForUpdate($input);
+    }
+
+    public function prepareInputForAdd($input) {
+        $input = $this->normalizeRequestTypesInput($input);
+
+        return parent::prepareInputForAdd($input);
     }
 }
