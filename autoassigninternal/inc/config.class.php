@@ -55,13 +55,18 @@ class PluginAutoassigninternalConfig extends CommonDBTM {
 
         $value = $this->getInternalRequestTypeIds();
 
-        RequestType::dropdown([
+        $params = [
             'name'                => 'requesttypes_ids[]',
-            'value'               => $value,
             'values'              => $value,
             'multiple'            => true,
             'display_emptychoice' => true
-        ]);
+        ];
+
+        if (!empty($value)) {
+            $params['value'] = (string) reset($value);
+        }
+
+        RequestType::dropdown($params);
 
         echo '</td>';
         echo '</tr>';
