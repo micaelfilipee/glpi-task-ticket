@@ -8,7 +8,45 @@ require_once __DIR__ . '/inc/config.class.php';
 
 if (!function_exists('plugin_autoassigninternal_log')) {
     function plugin_autoassigninternal_log($message) {
-        Toolbox::logInFile('autoassigninternal', '[AutoAssignInternal] ' . $message);
+        $prefix = '[AutoAssignInternal] ';
+        $line   = $prefix . $message;
+
+        $logDir = defined('GLPI_LOG_DIR') ? GLPI_LOG_DIR : GLPI_ROOT . '/files/_log';
+        $logDir = rtrim($logDir, DIRECTORY_SEPARATOR);
+        $logFile = $logDir . DIRECTORY_SEPARATOR . 'autoassigninternal.log';
+
+        $sizeBefore = null;
+        if (file_exists($logFile)) {
+            clearstatcache(true, $logFile);
+            $sizeBefore = filesize($logFile);
+        }
+
+        $wroteWithToolbox = false;
+        if (class_exists('Toolbox') && method_exists('Toolbox', 'logInFile')) {
+            Toolbox::logInFile('autoassigninternal', $line);
+
+            clearstatcache(true, $logFile);
+            if (file_exists($logFile)) {
+                $sizeAfter = filesize($logFile);
+                $wroteWithToolbox = ($sizeBefore === null && $sizeAfter > 0)
+                    || ($sizeBefore !== null && $sizeAfter !== $sizeBefore);
+            }
+        }
+
+        if ($wroteWithToolbox) {
+            return;
+        }
+
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0775, true);
+        }
+
+        if (is_dir($logDir) && is_writable($logDir)) {
+            $timestampedLine = sprintf('%s %s%s', date('Y-m-d H:i:s'), $line, PHP_EOL);
+            file_put_contents($logFile, $timestampedLine, FILE_APPEND);
+        } elseif (function_exists('error_log')) {
+            error_log($line);
+        }
     }
 }
 
@@ -72,51 +110,50 @@ function plugin_autoassigninternal_post_item_update(CommonDBTM $item) {
         return;
     }
 
-    $assignmentField = 'users_id';
-    if (!isset($ticket->fields[$assignmentField]) && isset($ticket->fields['users_id_assign'])) {
-        $assignmentField = 'users_id_assign';
-    }
+    $ticketUser = new Ticket_User();
+    $assignType = CommonITILActor::ASSIGN;
 
-    $currentTicketUserId = 0;
-    if (isset($ticket->fields[$assignmentField])) {
-        $currentTicketUserId = (int)$ticket->fields[$assignmentField];
-    }
+    $existingAssignments = [];
+    if (isset($ticket->fields['id'])) {
+        $iterator = $ticketUser->find([
+            'tickets_id' => $ticketId,
+            'type'       => $assignType
+        ]);
 
-    if ($currentTicketUserId === $taskUserId) {
-        plugin_autoassigninternal_log(sprintf('Chamado %d já está atribuído ao usuário %d.', $ticketId, $taskUserId));
-    } else {
-        $updateInput = [
-            'id'             => $ticketId,
-            $assignmentField => $taskUserId
-        ];
-
-        if ($ticket->update($updateInput)) {
-            plugin_autoassigninternal_log(sprintf('Chamado %d atribuído automaticamente ao usuário %d.', $ticketId, $taskUserId));
-        } else {
-            plugin_autoassigninternal_log(sprintf('Falha ao atribuir automaticamente o chamado %d ao usuário %d.', $ticketId, $taskUserId));
+        if (is_array($iterator)) {
+            $existingAssignments = $iterator;
         }
     }
 
-    plugin_autoassigninternal_ensure_ticket_assigned_actor($ticketId, $taskUserId);
-}
-
-function plugin_autoassigninternal_ensure_ticket_assigned_actor($ticketId, $userId) {
-    $ticketUser = new Ticket_User();
-    $criteria   = [
-        'tickets_id' => $ticketId,
-        'users_id'   => $userId,
-        'type'       => CommonITILActor::ASSIGN
-    ];
-
-    if (!empty($ticketUser->find($criteria))) {
-        plugin_autoassigninternal_log(sprintf('Chamado %d já possui o usuário %d como ator atribuído.', $ticketId, $userId));
-        return;
+    foreach ($existingAssignments as $assignment) {
+        if ((int)$assignment['users_id'] === $taskUserId) {
+            plugin_autoassigninternal_log(sprintf('Chamado %d já está atribuído ao usuário %d.', $ticketId, $taskUserId));
+            return;
+        }
     }
 
-    $addInput = $criteria + ['use_notification' => 1];
+    $result = false;
 
-    if ($ticketUser->add($addInput)) {
-        plugin_autoassigninternal_log(sprintf('Usuário %d adicionado como ator atribuído ao chamado %d.', $userId, $ticketId));
+    if (!empty($existingAssignments)) {
+        $assignment = reset($existingAssignments);
+        $assignmentId = isset($assignment['id']) ? (int)$assignment['id'] : (int)key($existingAssignments);
+
+        $result = $ticketUser->update([
+            'id'               => $assignmentId,
+            'users_id'         => $taskUserId,
+            'use_notification' => isset($assignment['use_notification']) ? $assignment['use_notification'] : 1
+        ]);
+    } else {
+        $result = (bool)$ticketUser->add([
+            'tickets_id'      => $ticketId,
+            'users_id'        => $taskUserId,
+            'type'            => $assignType,
+            'use_notification'=> 1
+        ]);
+    }
+
+    if ($result) {
+        plugin_autoassigninternal_log(sprintf('Chamado %d atribuído automaticamente ao usuário %d.', $ticketId, $taskUserId));
     } else {
         plugin_autoassigninternal_log(sprintf('Falha ao adicionar o usuário %d como ator atribuído ao chamado %d.', $userId, $ticketId));
     }
