@@ -37,7 +37,9 @@ class PluginAutoAssignInternalConfig extends CommonDBTM {
 
         echo "<div class='center'>";
         echo "<form method='post' action=''>";
-        echo Html::hidden('_glpi_csrf_token', Session::getNewCSRFToken());
+        echo Html::hidden('_glpi_csrf_token', [
+            'value' => Session::getNewCSRFToken()
+        ]);
         echo "<table class='tab_cadre_fixe'>";
 
         echo "<tr><th colspan='2'>" . __('Configurações Gerais', 'autoassigninternal') . "</th></tr>";
@@ -73,7 +75,9 @@ class PluginAutoAssignInternalConfig extends CommonDBTM {
 
         echo "<tr class='tab_bg_2'>";
         echo "<td colspan='2' class='center'>";
-        echo Html::hidden('update', 1);
+        echo Html::hidden('update', [
+            'value' => 1
+        ]);
         echo "<input type='submit' name='submit' class='submit' value='" . _sx('button', 'Salvar') . "'>";
         echo "</td>";
         echo "</tr>";
