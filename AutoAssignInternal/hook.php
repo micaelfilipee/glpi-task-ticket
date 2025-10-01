@@ -63,13 +63,30 @@ function plugin_AutoAssignInternal_uninstall() {
 }
 
 /**
- * Assign the ticket to the technician of the newly created task when applicable.
+ * Assign the ticket to the technician of the task based on the hook event.
  *
  * @param TicketTask $item
  */
 function plugin_AutoAssignInternal_assign_tech_on_task_add(TicketTask $item) {
-    global $DB;
+    _AutoAssignInternal_assign_tech_from_task($item, 'create');
+}
 
+/**
+ * Assign the ticket to the technician when a task is updated.
+ *
+ * @param TicketTask $item
+ */
+function plugin_AutoAssignInternal_assign_tech_on_task_update(TicketTask $item) {
+    _AutoAssignInternal_assign_tech_from_task($item, 'update');
+}
+
+/**
+ * Core logic to assign the ticket to the technician of the task.
+ *
+ * @param TicketTask $item
+ * @param string     $event
+ */
+function _AutoAssignInternal_assign_tech_from_task(TicketTask $item, string $event) {
     static $logEnabled          = null;
     static $enabledRequestTypes = null;
 
@@ -90,8 +107,10 @@ function plugin_AutoAssignInternal_assign_tech_on_task_add(TicketTask $item) {
         $ticketId = (int)$item->input['tickets_id'];
     }
 
+    $eventLabel = ($event === 'update') ? 'atualização' : 'criação';
+
     if ($logEnabled) {
-        _AutoAssignInternal_write_log(sprintf('Hook acionado para tarefa %d do chamado %d.', $taskId, $ticketId));
+        _AutoAssignInternal_write_log(sprintf('Hook de %s acionado para tarefa %d do chamado %d.', $eventLabel, $taskId, $ticketId));
     }
 
     if ($ticketId <= 0) {

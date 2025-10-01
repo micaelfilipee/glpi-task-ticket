@@ -24,7 +24,8 @@ function plugin_init_AutoAssignInternal() {
 
     $PLUGIN_HOOKS['config_page']['AutoAssignInternal'] = 'front/config.form.php';
     $PLUGIN_HOOKS['csrf_compliant']['AutoAssignInternal'] = true;
-    $PLUGIN_HOOKS['item_add']['AutoAssignInternal']['TicketTask'] = 'plugin_AutoAssignInternal_assign_tech_on_task_add';
+    $PLUGIN_HOOKS['item_add']['AutoAssignInternal']['TicketTask']    = 'plugin_AutoAssignInternal_assign_tech_on_task_add';
+    $PLUGIN_HOOKS['item_update']['AutoAssignInternal']['TicketTask'] = 'plugin_AutoAssignInternal_assign_tech_on_task_update';
 
     if (class_exists('Plugin')) {
         Plugin::registerClass('PluginAutoAssignInternalConfig');
